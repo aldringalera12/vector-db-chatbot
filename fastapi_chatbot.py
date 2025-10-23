@@ -186,6 +186,15 @@ async def startup_event():
         db_path = os.getenv("DB_PATH", "./vector_db")
         collection_name = os.getenv("COLLECTION_NAME", "definitions")
 
+        print(f"📁 Using database path: {db_path}")
+        print(f"📚 Using collection: {collection_name}")
+
+        # Check if database path exists
+        if not os.path.exists(db_path):
+            print(f"⚠️  Database path does not exist: {db_path}")
+            print(f"📁 Creating database directory...")
+            os.makedirs(db_path, exist_ok=True)
+
         chatbot = VectorDatabaseChatbot(
             api_key=api_key,
             db_path=db_path,
@@ -194,11 +203,17 @@ async def startup_event():
         print("✅ Chatbot initialized successfully")
 
         # Check database content
-        definitions = chatbot.chunker.list_all_definitions()
-        print(f"📊 Database contains {len(definitions)} definitions")
+        try:
+            definitions = chatbot.chunker.list_all_definitions()
+            print(f"📊 Database contains {len(definitions)} definitions")
+        except Exception as db_error:
+            print(f"⚠️  Warning: Could not list definitions: {db_error}")
+            print(f"📊 Database may be empty or corrupted")
 
     except Exception as e:
         print(f"❌ Error initializing chatbot: {e}")
+        import traceback
+        traceback.print_exc()
         raise
 
 @app.get("/", response_model=dict)

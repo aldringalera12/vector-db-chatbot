@@ -21,17 +21,25 @@ class DefinitionChunker:
         """Initialize the definition chunker with vector database."""
         self.db_path = db_path
         self.collection_name = collection_name
-        
-        # Initialize ChromaDB
-        self.client = chromadb.PersistentClient(path=db_path)
-        
-        # Get or create collection
+
         try:
-            self.collection = self.client.get_collection(name=collection_name)
-            print(f"Using existing collection: {collection_name}")
-        except:
-            self.collection = self.client.create_collection(name=collection_name)
-            print(f"Created new collection: {collection_name}")
+            # Ensure database path exists
+            os.makedirs(db_path, exist_ok=True)
+
+            # Initialize ChromaDB
+            self.client = chromadb.PersistentClient(path=db_path)
+
+            # Get or create collection
+            try:
+                self.collection = self.client.get_collection(name=collection_name)
+                print(f"✅ Using existing collection: {collection_name}")
+            except Exception as e:
+                print(f"📝 Creating new collection: {collection_name}")
+                self.collection = self.client.create_collection(name=collection_name)
+                print(f"✅ Created new collection: {collection_name}")
+        except Exception as e:
+            print(f"❌ Error initializing ChromaDB: {e}")
+            raise
     
     def chunk_by_end_markers(self, text: str) -> List[Dict[str, str]]:
         """
