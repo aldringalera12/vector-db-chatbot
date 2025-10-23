@@ -13,7 +13,6 @@ from typing import List, Dict, Tuple
 import chromadb
 from chromadb.config import Settings
 import uuid
-from sentence_transformers import SentenceTransformer
 import os
 
 
