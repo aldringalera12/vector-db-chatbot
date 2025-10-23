@@ -15,6 +15,7 @@ import os
 from dotenv import load_dotenv
 from chatbot import VectorDatabaseChatbot
 from definition_chunker import DefinitionChunker
+from s3_utils import get_s3_manager
 
 # Load environment variables from .env file
 load_dotenv()
@@ -189,9 +190,14 @@ async def startup_event():
         print(f"📁 Using database path: {db_path}")
         print(f"📚 Using collection: {collection_name}")
 
-        # Check if database path exists
+        # Download database from S3 if available
+        s3_manager = get_s3_manager()
+        if s3_manager.enabled:
+            print("📥 Attempting to download database from S3...")
+            s3_manager.download_database(db_path)
+
+        # Create database directory if it doesn't exist
         if not os.path.exists(db_path):
-            print(f"⚠️  Database path does not exist: {db_path}")
             print(f"📁 Creating database directory...")
             os.makedirs(db_path, exist_ok=True)
 
@@ -215,6 +221,20 @@ async def startup_event():
         import traceback
         traceback.print_exc()
         raise
+
+# Upload database to S3 on shutdown
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Upload database to S3 before shutdown."""
+    try:
+        db_path = os.getenv("DB_PATH", "./vector_db")
+        s3_manager = get_s3_manager()
+        if s3_manager.enabled:
+            print("📤 Uploading database to S3 before shutdown...")
+            s3_manager.upload_database(db_path)
+            print("✅ Database uploaded to S3")
+    except Exception as e:
+        print(f"⚠️  Warning: Could not upload database to S3: {e}")
 
 @app.get("/", response_model=dict)
 async def root():
